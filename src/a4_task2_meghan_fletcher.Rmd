@@ -1,0 +1,111 @@
+---
+title: "Bonanza Juvenile Showshoe Hare Report"
+author: "By: Meghan Fletcher"
+date: "11/16/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(here)
+library(kableExtra)
+library(dplyr)
+library(broom)
+library(ggpubr)
+library(beeswarm)
+```
+
+## Introduction
+
+## Date and Analyses
+
+```{r}
+bonanza_hares_data <- read_csv(here("data", "bonanza_hares.csv")) %>% 
+  clean_names()
+
+juvenile_hare_trappings <- bonanza_hares_data %>% 
+  filter(age == "j") %>% 
+  mutate(date = mdy(date)) %>%
+  mutate(year_new = year(date)) %>% 
+  count(year_new)
+
+ggplot(juvenile_hare_trappings, aes(x = year_new, y = n)) +
+  geom_col(fill = "olivedrab4") +
+  labs(x = "Year", y = "Juvenile Hares", title = "Number of Juvenile Hares Trapped by Year from 1999 to 2012") +
+  theme_bw()
+
+  
+```
+
+
+Describe major takeaways
+
+
+```{r}
+juvenile_hare_weights <- bonanza_hares_data %>% 
+  filter(age == "j") %>% 
+  select(grid, weight, sex) %>% 
+  filter(!is.na(weight)) %>% 
+  group_by(grid) %>% 
+  mutate(sex = case_when(
+    sex == "f"~"Female", 
+    sex == "m"~"Male")) %>% 
+  mutate(grid = case_when(
+    grid == "bonbs"~"Mature Lowland",
+    grid == "bonmat"~"Bonanza Mature",
+    grid == "bonrip"~"Bonanza Riparian"))
+  summarize(
+    mean_hare_weight = mean(weight),
+    sd_hare_weight = sd(weight),
+    sample_size = n(),
+    se_hare_weight = sd(weight)/sqrt(n()),
+    var_hare_weight = var(weight)
+  )
+
+ggplot(data = juvenile_hare_weights, aes(x = grid, y = weight)) +
+  geom_beeswarm()
+```
+
+```{r}
+
+ggplot() +
+  geom_beeswarm(data = juvenile_hare_weights, aes(x = grid, y = weight))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

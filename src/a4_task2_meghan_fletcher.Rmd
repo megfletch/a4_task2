@@ -16,14 +16,17 @@ library(kableExtra)
 library(dplyr)
 library(broom)
 library(ggpubr)
-library(beeswarm)
+library(ggbeeswarm)
+library(effsize)
 ```
 
 ## Introduction
 
 ## Date and Analyses
 
-```{r}
+```{r, echo=FALSE, fig.cap="**Firgure 1:**"}
+## Part 1 - Annual juvenile hare trap counts
+
 bonanza_hares_data <- read_csv(here("data", "bonanza_hares.csv")) %>% 
   clean_names()
 
@@ -45,12 +48,14 @@ ggplot(juvenile_hare_trappings, aes(x = year_new, y = n)) +
 Describe major takeaways
 
 
-```{r}
+```{r, echo=FALSE, fig.cap="I love hares"}
+## Part 2 - Visualize juvenile hare weights
+
 juvenile_hare_weights <- bonanza_hares_data %>% 
   filter(age == "j") %>% 
   select(grid, weight, sex) %>% 
   filter(!is.na(weight)) %>% 
-  group_by(grid) %>% 
+  group_by(grid, sex) %>% 
   mutate(sex = case_when(
     sex == "f"~"Female", 
     sex == "m"~"Male")) %>% 
@@ -58,25 +63,113 @@ juvenile_hare_weights <- bonanza_hares_data %>%
     grid == "bonbs"~"Mature Lowland",
     grid == "bonmat"~"Bonanza Mature",
     grid == "bonrip"~"Bonanza Riparian"))
+
+juvenile_weights_sum <- juvenile_hare_weights %>% 
   summarize(
     mean_hare_weight = mean(weight),
     sd_hare_weight = sd(weight),
-    sample_size = n(),
-    se_hare_weight = sd(weight)/sqrt(n()),
-    var_hare_weight = var(weight)
+    sample_size = n()
   )
 
-ggplot(data = juvenile_hare_weights, aes(x = grid, y = weight)) +
-  geom_beeswarm()
-```
-
-```{r}
-
 ggplot() +
-  geom_beeswarm(data = juvenile_hare_weights, aes(x = grid, y = weight))
+    geom_beeswarm(data = juvenile_hare_weights, 
+                aes(x = sex, y = weight, color = sex),
+                size = 3,
+                alpha = 0.6) +
+  geom_point(data = juvenile_weights_sum, 
+             aes(x = sex, y = mean_hare_weight),
+             size = 3) +
+  geom_errorbar(data = juvenile_weights_sum,
+                aes(x = sex,
+                    ymax = mean_hare_weight + sd_hare_weight,
+                    ymin = mean_hare_weight - sd_hare_weight),
+                width = 0.07) +
+  theme_bw() +
+  facet_wrap(~grid) +
+  labs(x = "Sex", y = "Weight", Title = "Mean Weights of Male and Female Snowshoe Hares Across 3 Study Sites")
+```
+
+Describe takeaways
+
+
+```{r, echo=FALSE}
+## Part 3 - Juvenile weight comparison (male & female snowshoe hares)
+
+juvenile_weights_sum %>% 
+  kbl(caption = "Mean Summary Statistics for Male and Female Juvenile Showshoe Hare Weights") %>% 
+   kable_classic_2(full_width = F, html_font = "Cambria")
+
+```
+
+```{r, echo=FALSE}
+## Get vectors of weight for female and male juvenile hares separately.
+
+juv_hares_f <- juvenile_hare_weights %>% 
+  filter(sex == "Female") %>% 
+  pull(weight)
+
+juv_hares_m <- juvenile_hare_weights %>% 
+  filter(sex == "Male") %>% 
+  pull(weight)
+
+##  Is there a significant difference in weight between male and female juvenile snowshoe hares?
+
+juv_hares_ttest <- t.test(juv_hares_f, juv_hares_m)
+juv_hares_ttest
+
+cohen.d(juv_hares_f, juv_hares_m)
+
+## Are male juvenile hares significantly larger (in weight) than female juvenile hares?
+
+t.test(juv_hares_m, juv_hares_f, alternative = "greater")
+```
+
+```{r, echo=FALSE}
+juv_hares_f <- juvenile_hare_weights %>% 
+  filter(sex == "Female")
+
+ggplot(data = juv_hares_f, aes(x = weight)) +
+  geom_histogram(aes(fill = grid)) +
+  facet_wrap(~grid, scale = "free")
+
+ggplot(data = juv_hares_f, aes(sample = weight)) +
+  geom_qq(aes(color = grid)) +
+  facet_wrap(~grid, scale = "free")
+```
+
+```{r, echo=FALSE}
+juv_hares_m <- juvenile_hare_weights %>% 
+  filter(sex == "Male")
+
+ggplot(data = juv_hares_m, aes(x = weight)) +
+  geom_histogram(aes(fill = grid)) +
+  facet_wrap(~grid, scale = "free")
+
+ggplot(data = juv_hares_m, aes(sample = weight)) +
+  geom_qq(aes(color = grid)) +
+  facet_wrap(~grid, scale = "free")
 ```
 
 
+A 2 - 3 sentence comprehensive statement of the means comparison, including at least:
+The actual difference in means
+Effect size (Cohen's *d*)
+Outcome of a two-sample t-test
+
+```{r, echo=FALSE, fig.cap=}
+## Part 4 - Relationship between juvenile weight & hind foot length
+
+juv_weight_hindft <- bonanza_hares_data %>% 
+  filter(age == "j") %>% 
+  select(grid, weight, sex, hindft) %>% 
+  filter(!is.na(weight)) %>% 
+  filter(!is.na(hindft))
+
+ggplot(data = juv_weight_hindft, aes(x = hindft, y = weight)) +
+  geom_point(color = "chocolate4") +
+  labs(x = "Hind Foot Length (mm)", y = "Weight (g)", title = "Juvenile Snowshoe Hare Weight Compared  to Hind Foot Length")
+
+```
 
 
 
